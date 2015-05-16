@@ -4,8 +4,9 @@
 
 # Home page
 GET     /                                       controllers.Application.index
-GET     /:corporate/:branch/:screen             controllers.Application.join(corporate:String,branch:String,screen:String)
+GET     /join/:corporate/:branch/:screen        controllers.Application.join(corporate:String,branch:String,screen:String)
 GET     /ws/:corporate/:branch/:screen          controllers.Application.ws(corporate:String,branch:String,screen:String)
+GET     /send/:corporate/:branch/:screen/:msg   controllers.Application.send(corporate:String,branch:String,screen:String,msg:String)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
