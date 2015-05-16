@@ -4,6 +4,7 @@ import scala.concurrent.Future
 import play.api.libs.concurrent.Akka
 import scala.Left
 import scala.Right
+import scala.util._
 import play.api._
 import play.api.Play.current
 import play.api.mvc._
@@ -26,9 +27,9 @@ object Application extends Controller {
 				counter += 1
 				counter.toString
 			}
-			Akka.system.actorOf(Props[CorporateActor],corporate) ! Child(branch)
-			Akka.system.actorSelection(s"/user/$corporate/$branch") ! Child(screen)
-			Ok(views.html.index("Your new application is ready."))
+			ScreenActor.join(corporate,branch,screen)
+			val url = s"ws://${request.host}/ws/$corporate/$branch/$screen"
+			Ok(views.html.index(url))
 				.withSession(request.session + (UID -> uid))
 	}
 
@@ -53,14 +54,23 @@ object Application extends Controller {
 
 class CorporateActor extends Actor{
 	def receive = {
-		case Child(name) => context.actorOf(Props[BranchActor], name)
+		case (Child(branch),Child(screen)) => Try{ 
+			context.actorOf(Props[BranchActor], branch) ! Child(screen) 
+		} match{
+			case Success(_) => ()
+			case Failure(err) => context.actorSelection(s"/$branch") ! Child(screen) 
+		}
+
+		case Child(name) => Try(context.actorOf(Props[BranchActor], name))
 	}
 }
+
 class BranchActor extends Actor{
 	def receive = {
-		case Child(name) => context.actorOf(Props[ScreenActor], name)
+		case Child(name) => Try(context.actorOf(Props[ScreenActor], name))
 	}
 }
+
 class ScreenActor extends Actor{
 	val log = Logging(context.system,this)
 	var wsClients = Set[ActorRef]()
@@ -74,6 +84,20 @@ class ScreenActor extends Actor{
 			wsClients foreach {_ ! msg }
 	}
 }
+
+object ScreenActor{
+	def join(corporate:String,branch:String,screen:String) = 
+		Try{Akka.system.actorOf(Props[CorporateActor],corporate)}
+	match{
+		case Success(ar) => 
+			ar ! (Child(branch),Child(screen))
+		case Failure(err) => 
+			Akka.system.actorSelection(s"/user/$corporate") ! (Child(branch),Child(screen))
+	}
+
+}
+
+
 
 		case class Child(name:String)
 		object Subscribe
