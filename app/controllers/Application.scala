@@ -74,14 +74,16 @@ class BranchActor extends Actor{
 class ScreenActor extends Actor{
 	val log = Logging(context.system,this)
 	var wsClients = Set[ActorRef]()
+	override def preStart = log.info(s"starting ... ${self.path.name}")
 	def receive = {
 		case Subscribe => 
 			wsClients += sender()
-			//context watch sender
+			context watch sender()
 			log.info("subscribing")
 		case msg:JsValue => 
 			log.info(msg.toString)
 			wsClients foreach {_ ! msg }
+		case Terminated(wsclt) => wsClients -= wsclt
 	}
 }
 
