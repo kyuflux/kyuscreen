@@ -37,7 +37,7 @@ object Application extends Controller {
 	def send(corporate:String, branch:String, screen:String,msg:String) = Action {
 		Akka.system.actorSelection(
 			s"/user/$corporate/$branch/$screen") ! JsObject(Seq(
-			"mensaje" -> JsString(msg)))
+			"name" -> JsString(msg)))
 		Ok(s"sent $msg!")
 	} 
 

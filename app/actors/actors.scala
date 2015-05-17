@@ -7,7 +7,8 @@ import play.api.Play.current
 import akka.actor._
 import play.api.libs.json._
 import akka.event.Logging
-
+import kyu.tools.TextToSpeech._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class CorporateActor extends Actor{
 	def receive = {
@@ -42,7 +43,10 @@ class ScreenActor extends Actor{
 			log.info("subscribing")
 		case msg:JsValue => 
 			log.info(msg.toString)
-			wsClients foreach {_ ! msg }
+			 val name = (msg \ "name").as[String]
+			 b64Audio(name) map{ w => 
+				 wsClients foreach {_ ! JsObject(Seq("name"-> JsString(name),"audio" -> JsString(w)))}
+			}		
 		case Terminated(wsclt) => wsClients -= wsclt
 	}
 }
@@ -58,8 +62,6 @@ object ScreenActor{
 	}
 
 }
-
-
 
 		case class Child(name:String)
 		object Subscribe
